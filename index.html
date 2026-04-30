@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calibration Report App</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="site-gate" id="siteGate" aria-live="polite">
+      <div class="site-gate-card">
+        <p class="site-gate-kicker">Before You Start</p>
+        <h2>Select Report Allocation</h2>
+        <p class="site-gate-copy">
+          Choose where this calibration report belongs before entering any
+          report data.
+        </p>
+        <div class="site-option-grid">
+          <button class="site-option" data-site-option="SAE" type="button">
+            <strong>SAE</strong>
+            <span>Start this calibration report for SAE</span>
+          </button>
+          <button class="site-option" data-site-option="SAHPC" type="button">
+            <strong>SAHPC</strong>
+            <span>Start this calibration report for SAHPC</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell">
+      <aside class="controls no-print">
+        <div>
+          <p class="eyebrow">Calibration Workspace</p>
+          <h1>Report Builder</h1>
+          <p class="controls-copy">
+            A printable whole blood calibration report based on your provided
+            form, with auto-calculated mean and CV values.
+          </p>
+        </div>
+
+        <div class="action-stack">
+          <button id="printButton" class="primary-button" type="button">
+            Print / Save PDF
+          </button>
+          <button id="sampleButton" class="secondary-button" type="button">
+            Load Sample Data
+          </button>
+          <button id="clearButton" class="ghost-button" type="button">
+            Clear Form
+          </button>
+        </div>
+
+        <section class="selection-card">
+          <p class="selection-label">Selected Location</p>
+          <div class="selection-value" id="selectedSiteLabel">Not selected</div>
+          <button id="changeSiteButton" class="secondary-button" type="button">
+            Change Selection
+          </button>
+        </section>
+
+        <section class="tips-card">
+          <h2>What this app includes</h2>
+          <ul>
+            <li>Editable instrument and customer details</li>
+            <li>Single report layout for Whole Blood (WB)</li>
+            <li>Automatic mean and coefficient of variation</li>
+            <li>Print-friendly document styling</li>
+            <li>Local autosave in your browser</li>
+          </ul>
+        </section>
+      </aside>
+
+      <main class="page-wrap">
+        <section class="report-page" id="reportPage">
+          <header class="report-header" id="reportHeader">
+            <div class="report-brand report-brand-left" id="reportBrandLeft" aria-hidden="true">
+              <img src="./sae.png" alt="" />
+            </div>
+            <div class="report-brand-top" id="reportBrandTop" aria-hidden="true">
+              <img src="./sahpc.png" alt="" />
+            </div>
+            <div class="report-heading">
+              <p class="report-kicker" id="reportKicker">Machine Calibration Service Form</p>
+              <h2>CALIBRATION REPORT</h2>
+            </div>
+          </header>
+
+          <section class="identity-grid">
+            <label class="line-field">
+              <span>Instrument</span>
+              <input data-field="instrument" type="text" />
+            </label>
+            <label class="line-field">
+              <span>Serial No.</span>
+              <input data-field="serialNo" type="text" />
+            </label>
+            <label class="line-field">
+              <span>Account</span>
+              <input data-field="company" type="text" />
+            </label>
+            <label class="line-field wide">
+              <span>Address</span>
+              <input data-field="address" type="text" />
+            </label>
+          </section>
+
+          <section class="batch-row">
+            <label class="inline-line-field">
+              <span>Lot No.</span>
+              <input data-field="lotNo" type="text" />
+            </label>
+            <label class="inline-line-field">
+              <span>Exp. Date</span>
+              <input data-field="expDate" type="text" placeholder="MM/DD/YYYY" />
+            </label>
+          </section>
+
+          <section class="table-panel">
+            <div class="table-title">Whole Blood (WB)</div>
+
+            <div class="table-scroll">
+              <table class="report-table" id="reportTable">
+                <thead>
+                  <tr>
+                    <th scope="col"> </th>
+                    <th scope="col">WBC</th>
+                    <th scope="col">RBC</th>
+                    <th scope="col">HGB</th>
+                    <th scope="col">HCT</th>
+                    <th scope="col">PLT</th>
+                    <th scope="col">RBC-O</th>
+                    <th scope="col">WBC-O</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="info-grid">
+            <div class="info-row note-row">
+              <div class="info-label">Degree of Uncertainty</div>
+              <div class="info-separator">:</div>
+              <div class="info-content emphasis">
+                The expected ranges are the values within which approximately
+                95% of mean results for all laboratories should fall.
+              </div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-label">Standard material used</div>
+              <div class="info-separator">:</div>
+              <div class="info-content stacked-fields">
+                <label class="block-field">
+                  <span>Material</span>
+                  <input data-field="standardMaterial" type="text" />
+                </label>
+                <div class="two-col">
+                  <label class="block-field">
+                    <span>Lot No.</span>
+                    <input data-field="materialLotNo" type="text" />
+                  </label>
+                  <label class="block-field">
+                    <span>Expiry Date</span>
+                    <input data-field="materialExpiry" type="text" placeholder="MM/DD/YYYY" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-label">Traceability</div>
+              <div class="info-separator">:</div>
+              <div class="info-content">
+                <div class="two-col aligned-end">
+                  <label class="block-field">
+                    <span>Traceability Source</span>
+                    <input data-field="traceability" type="text" />
+                  </label>
+                  <label class="block-field">
+                    <span>Date Calibrated</span>
+                    <input data-field="dateCalibrated" type="text" placeholder="MM/DD/YYYY" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="signature-row">
+              <label class="signature-field">
+                <span>PERFORMED BY:</span>
+                <input data-field="performedBy" type="text" />
+                <strong>APPLICATION SPECIALIST</strong>
+              </label>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>
