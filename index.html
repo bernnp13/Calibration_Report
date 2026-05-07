@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Calibration Report App</title>
+    <title>Calibration Report Builder</title>
+    <meta
+      name="description"
+      content="A shareable whole blood calibration report builder with local autosave, JSON export and import, and PDF download."
+    />
+    <meta name="theme-color" content="#1f6981" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -31,17 +37,22 @@
     <div class="shell">
       <aside class="controls no-print">
         <div>
-          <p class="eyebrow">Calibration Workspace</p>
+          <p class="eyebrow">Share-Ready Tool</p>
           <h1>Report Builder</h1>
-          <p class="controls-copy">
-            A printable whole blood calibration report based on your provided
-            form, with auto-calculated mean and CV values.
-          </p>
         </div>
 
         <div class="action-stack">
-          <button id="printButton" class="primary-button" type="button">
-            Print / Save PDF
+          <button id="pdfButton" class="primary-button" type="button">
+            Save PDF
+          </button>
+          <button id="ultraPdfButton" class="secondary-button" type="button">
+            Ultra Compact PDF
+          </button>
+          <button id="printButton" class="secondary-button" type="button">
+            Print
+          </button>
+          <button id="ultraPrintButton" class="secondary-button" type="button">
+            Ultra Compact Print
           </button>
           <button id="sampleButton" class="secondary-button" type="button">
             Load Sample Data
@@ -50,6 +61,25 @@
             Clear Form
           </button>
         </div>
+
+        <div class="action-stack compact-actions">
+          <button id="exportButton" class="secondary-button" type="button">
+            Export Data
+          </button>
+          <button id="importButton" class="secondary-button" type="button">
+            Import Data
+          </button>
+        </div>
+
+        <input id="importFileInput" type="file" accept="application/json,.json" hidden />
+
+        <section class="status-card">
+          <p class="selection-label">Data Status</p>
+          <p id="statusMessage" class="status-message">
+            Stored locally in this browser. Export a JSON backup to move reports
+            to another device.
+          </p>
+        </section>
 
         <section class="selection-card">
           <p class="selection-label">Selected Location</p>
@@ -60,13 +90,13 @@
         </section>
 
         <section class="tips-card">
-          <h2>What this app includes</h2>
+          <h2>Public Sharing Notes</h2>
           <ul>
-            <li>Editable instrument and customer details</li>
-            <li>Single report layout for Whole Blood (WB)</li>
-            <li>Automatic mean and coefficient of variation</li>
-            <li>Print-friendly document styling</li>
-            <li>Local autosave in your browser</li>
+            <li>Anyone with the page link can open the app in a browser</li>
+            <li>Each device keeps its own local autosave copy</li>
+            <li>Use export and import to transfer report data manually</li>
+            <li>Download PDF for formal report sharing or archiving</li>
+            <li>Whole Blood calculations update automatically across 10 WB rows</li>
           </ul>
         </section>
       </aside>
@@ -197,6 +227,10 @@
         </section>
       </main>
     </div>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+    ></script>
     <script src="./app.js"></script>
   </body>
 </html>

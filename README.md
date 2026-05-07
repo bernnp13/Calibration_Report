@@ -1,13 +1,14 @@
-# Calibration Report App
+# Calibration Report Builder
 
-A lightweight printable web app based on the provided calibration report image.
+A lightweight shareable web app based on the provided calibration report image.
 
 ## Features
 
 - Fillable report header and service details
 - Single report layout for `Whole Blood (WB)`
-- Auto-calculated `Mean` and `CV%` rows from `WB 1#` to `WB 6#`
-- Print-friendly layout for paper or PDF export
+- Auto-calculated `Mean` and `CV%` rows from `WB #1` to `WB #10`
+- PDF download and print-friendly layout
+- Export and import report data as JSON
 - Browser `localStorage` autosave
 
 ## Run

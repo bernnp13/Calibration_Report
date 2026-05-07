@@ -57,6 +57,7 @@ let state = loadState();
 const siteGate = document.querySelector("#siteGate");
 const siteOptionButtons = Array.from(document.querySelectorAll("[data-site-option]"));
 const selectedSiteLabel = document.querySelector("#selectedSiteLabel");
+const reportPage = document.querySelector("#reportPage");
 const reportHeader = document.querySelector("#reportHeader");
 const reportBrandLeft = document.querySelector("#reportBrandLeft");
 const reportBrandTop = document.querySelector("#reportBrandTop");
@@ -64,9 +65,20 @@ const reportKicker = document.querySelector("#reportKicker");
 const changeSiteButton = document.querySelector("#changeSiteButton");
 const tableBody = document.querySelector("#tableBody");
 const fieldInputs = Array.from(document.querySelectorAll("[data-field]"));
+const pdfButton = document.querySelector("#pdfButton");
+const ultraPdfButton = document.querySelector("#ultraPdfButton");
 const printButton = document.querySelector("#printButton");
 const sampleButton = document.querySelector("#sampleButton");
 const clearButton = document.querySelector("#clearButton");
+const exportButton = document.querySelector("#exportButton");
+const importButton = document.querySelector("#importButton");
+const importFileInput = document.querySelector("#importFileInput");
+const statusMessage = document.querySelector("#statusMessage");
+const ultraPrintButton = document.querySelector("#ultraPrintButton");
+
+let currentStatusMessage =
+  "Stored locally in this browser. Export a JSON backup to move reports to another device.";
+let activePrintMode = "standard";
 
 function loadState() {
   try {
@@ -130,6 +142,16 @@ function mergeState(savedState) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderStatus();
+}
+
+function setStatus(message) {
+  currentStatusMessage = message;
+  renderStatus();
+}
+
+function renderStatus() {
+  statusMessage.textContent = currentStatusMessage;
 }
 
 function isAllowedColumn(row, column) {
@@ -254,6 +276,7 @@ function renderSiteSelection() {
 
 function render() {
   renderSiteSelection();
+  renderStatus();
   renderFields();
   buildTable();
 }
@@ -316,6 +339,7 @@ function loadSampleData() {
 
   syncComputedRows();
   saveState();
+  setStatus("Sample table data loaded. Header, traceability, and signoff fields were left blank.");
   render();
 }
 
@@ -324,8 +348,137 @@ function clearForm() {
   state = createBlankState();
   state.selectedSite = selectedSite;
   saveState();
+  setStatus("Form cleared. Your location selection was kept, and all report fields were reset.");
   render();
 }
+
+function createExportPayload() {
+  return {
+    app: "calibration-report-builder",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state,
+  };
+}
+
+function buildFileStem() {
+  const site = state.selectedSite || "report";
+  const date = new Date().toISOString().slice(0, 10);
+  return `${site.toLowerCase()}-calibration-report-${date}`;
+}
+
+function setExportCompact(enabled) {
+  document.body.classList.toggle("export-compact", enabled);
+}
+
+function setUltraPrintMode(enabled) {
+  document.body.classList.toggle("ultra-print", enabled);
+}
+
+function applyPrintMode(mode) {
+  activePrintMode = mode;
+  setUltraPrintMode(mode === "ultra");
+}
+
+function resetPrintMode() {
+  activePrintMode = "standard";
+  setUltraPrintMode(false);
+}
+
+function printReport(mode = "standard") {
+  applyPrintMode(mode);
+
+  if (mode === "ultra") {
+    setStatus("Ultra Compact Print Mode opened. Turn off browser headers and footers for the best one-page result.");
+  }
+
+  window.print();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(createExportPayload(), null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${buildFileStem()}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  setStatus("Report data exported as JSON. You can import that file on another device.");
+}
+
+async function importDataFile(event) {
+  const [file] = event.target.files ?? [];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const nextState = parsed?.state ?? parsed;
+
+    state = mergeState(nextState);
+    saveState();
+    setStatus(`Imported report data from ${file.name}.`);
+    render();
+  } catch {
+    setStatus("That file could not be imported. Use a JSON export created by this app.");
+  } finally {
+    importFileInput.value = "";
+  }
+}
+
+async function downloadPdf(mode = "standard") {
+  const pdfApi = window.html2pdf;
+  if (!pdfApi) {
+    setStatus("PDF library not available right now. Print was opened instead.");
+    window.print();
+    return;
+  }
+
+  const activeButton = mode === "ultra" ? ultraPdfButton : pdfButton;
+  const previousLabel = activeButton.textContent;
+  pdfButton.disabled = true;
+  ultraPdfButton.disabled = true;
+  activeButton.textContent = mode === "ultra" ? "Preparing Ultra PDF..." : "Preparing PDF...";
+
+  try {
+    setExportCompact(true);
+    setUltraPrintMode(mode === "ultra");
+
+    await pdfApi()
+      .set({
+        filename: `${buildFileStem()}.pdf`,
+        margin: [4, 4, 4, 4],
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 1.6, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
+      })
+      .from(reportPage)
+      .save();
+
+    setStatus(mode === "ultra" ? "Ultra compact PDF downloaded successfully." : "PDF downloaded successfully.");
+  } catch {
+    setStatus("PDF download failed. You can still use Print to save the report as PDF.");
+  } finally {
+    setExportCompact(false);
+    setUltraPrintMode(false);
+    pdfButton.disabled = false;
+    ultraPdfButton.disabled = false;
+    activeButton.textContent = previousLabel;
+  }
+}
+
+window.addEventListener("beforeprint", () => {
+  setUltraPrintMode(activePrintMode === "ultra");
+});
+
+window.addEventListener("afterprint", () => {
+  resetPrintMode();
+});
 
 fieldInputs.forEach((input) => input.addEventListener("input", handleFieldInput));
 siteOptionButtons.forEach((button) =>
@@ -334,11 +487,18 @@ siteOptionButtons.forEach((button) =>
 changeSiteButton.addEventListener("click", () => {
   state.selectedSite = "";
   saveState();
+  setStatus("Selection cleared. Choose SAE or SAHPC before entering report data.");
   renderSiteSelection();
 });
 
-printButton.addEventListener("click", () => window.print());
+pdfButton.addEventListener("click", () => downloadPdf("standard"));
+ultraPdfButton.addEventListener("click", () => downloadPdf("ultra"));
+printButton.addEventListener("click", () => printReport("standard"));
+ultraPrintButton.addEventListener("click", () => printReport("ultra"));
 sampleButton.addEventListener("click", loadSampleData);
 clearButton.addEventListener("click", clearForm);
+exportButton.addEventListener("click", exportData);
+importButton.addEventListener("click", () => importFileInput.click());
+importFileInput.addEventListener("change", importDataFile);
 
 render();
