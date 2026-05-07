@@ -79,6 +79,7 @@ const ultraPrintButton = document.querySelector("#ultraPrintButton");
 let currentStatusMessage =
   "Stored locally in this browser. Export a JSON backup to move reports to another device.";
 let activePrintMode = "standard";
+let activePrintHost = null;
 
 function loadState() {
   try {
@@ -385,14 +386,84 @@ function resetPrintMode() {
   setUltraPrintMode(false);
 }
 
-function printReport(mode = "standard") {
+function syncClonedInputValues(sourceRoot, cloneRoot) {
+  const sourceInputs = Array.from(sourceRoot.querySelectorAll("input"));
+  const cloneInputs = Array.from(cloneRoot.querySelectorAll("input"));
+
+  sourceInputs.forEach((input, index) => {
+    const cloneInput = cloneInputs[index];
+    if (!cloneInput) return;
+    cloneInput.value = input.value;
+    cloneInput.setAttribute("value", input.value);
+  });
+}
+
+function cleanupPrintHost() {
+  activePrintHost?.remove();
+  activePrintHost = null;
+  document.body.classList.remove("print-sheet-mode");
+  setExportCompact(false);
+  setUltraPrintMode(false);
+}
+
+function waitForRenderFrame() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+async function createPrintHost(mode = "standard") {
+  cleanupPrintHost();
   applyPrintMode(mode);
+  setExportCompact(true);
 
-  if (mode === "ultra") {
-    setStatus("Ultra Compact Print Mode opened. Turn off browser headers and footers for the best one-page result.");
+  const host = document.createElement("div");
+  host.id = "printSheetHost";
+
+  const sheet = document.createElement("div");
+  sheet.className = "print-sheet";
+
+  const clone = reportPage.cloneNode(true);
+  clone.id = "reportPagePrintClone";
+  syncClonedInputValues(reportPage, clone);
+
+  sheet.appendChild(clone);
+  host.appendChild(sheet);
+  document.body.appendChild(host);
+  activePrintHost = host;
+
+  await waitForRenderFrame();
+
+  const initialRect = clone.getBoundingClientRect();
+  const maxWidth = sheet.clientWidth;
+  const maxHeight = sheet.clientHeight;
+  const scale = Math.min(maxWidth / initialRect.width, maxHeight / initialRect.height, 1);
+
+  clone.style.width = `${initialRect.width}px`;
+  clone.style.maxWidth = "none";
+  clone.style.margin = "0";
+  clone.style.transformOrigin = "top left";
+  clone.style.transform = `scale(${scale})`;
+
+  return { host, sheet, clone, scale };
+}
+
+async function printReport(mode = "standard") {
+  try {
+    await createPrintHost(mode);
+    document.body.classList.add("print-sheet-mode");
+
+    if (mode === "ultra") {
+      setStatus("Ultra Compact Print Mode opened. Turn off browser headers and footers for the best one-page result.");
+    }
+
+    window.print();
+  } catch {
+    cleanupPrintHost();
+    setStatus("Print layout could not be prepared. Please try again.");
   }
-
-  window.print();
 }
 
 function exportData() {
@@ -445,27 +516,25 @@ async function downloadPdf(mode = "standard") {
   activeButton.textContent = mode === "ultra" ? "Preparing Ultra PDF..." : "Preparing PDF...";
 
   try {
-    setExportCompact(true);
-    setUltraPrintMode(mode === "ultra");
+    const { sheet } = await createPrintHost(mode);
 
     await pdfApi()
       .set({
         filename: `${buildFileStem()}.pdf`,
-        margin: [4, 4, 4, 4],
+        margin: [0, 0, 0, 0],
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 1.6, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] },
+        pagebreak: { mode: ["avoid-all"] },
       })
-      .from(reportPage)
+      .from(sheet)
       .save();
 
     setStatus(mode === "ultra" ? "Ultra compact PDF downloaded successfully." : "PDF downloaded successfully.");
   } catch {
     setStatus("PDF download failed. You can still use Print to save the report as PDF.");
   } finally {
-    setExportCompact(false);
-    setUltraPrintMode(false);
+    cleanupPrintHost();
     pdfButton.disabled = false;
     ultraPdfButton.disabled = false;
     activeButton.textContent = previousLabel;
@@ -477,6 +546,7 @@ window.addEventListener("beforeprint", () => {
 });
 
 window.addEventListener("afterprint", () => {
+  cleanupPrintHost();
   resetPrintMode();
 });
 

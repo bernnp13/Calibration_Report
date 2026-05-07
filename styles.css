@@ -571,6 +571,31 @@ input {
   letter-spacing: 0.04em;
 }
 
+#printSheetHost {
+  position: fixed;
+  left: -200vw;
+  top: 0;
+  width: 210mm;
+  height: 297mm;
+  overflow: hidden;
+  background: white;
+  z-index: -1;
+  pointer-events: none;
+}
+
+#printSheetHost .print-sheet {
+  width: 210mm;
+  height: 297mm;
+  padding: 4mm;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: white;
+}
+
+#printSheetHost .report-page {
+  margin: 0;
+}
+
 body.export-compact {
   background: white;
 }
@@ -920,7 +945,7 @@ body.ultra-print .signature-field {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 6mm;
+    margin: 0;
   }
 
   .site-gate {
@@ -1083,6 +1108,31 @@ body.ultra-print .signature-field {
   .signature-field {
     gap: 3px;
     max-width: 170px;
+  }
+
+  body.print-sheet-mode > *:not(#printSheetHost) {
+    display: none !important;
+  }
+
+  body.print-sheet-mode #printSheetHost {
+    position: static;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    z-index: auto;
+  }
+
+  body.print-sheet-mode #printSheetHost .print-sheet {
+    width: 210mm;
+    height: 297mm;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body.print-sheet-mode #printSheetHost .report-page {
+    box-shadow: none;
+    border-radius: 0;
   }
 
   body.ultra-print .report-page {
